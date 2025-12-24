@@ -1,0 +1,7 @@
+﻿name = "agentfund-frontend"
+compatibility_date = "2024-12-23"
+pages_build_output_dir = "dist"
+
+[vars]
+# Public environment variables (safe to expose)
+VITE_API_BASE_URL = "https://agentfund.pages.dev"
