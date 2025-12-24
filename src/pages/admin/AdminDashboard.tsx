@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { adminApi } from '../../lib/api'
 import {
-    Brain, LogOut, Shield, Activity, AlertTriangle,
+    Brain, LogOut, Shield, Activity,
     CheckCircle2, XCircle, Clock, Loader2, Power,
-    Settings, List
+    Play, Server, Database
 } from 'lucide-react'
 import { RiskConfigPanel } from './RiskConfigPanel'
 import { PositionsTable } from './PositionsTable'
+import { LiveAgentFeed } from '../../components/LiveAgentFeed'
 
 interface SystemHealth {
     status: string
@@ -34,18 +35,17 @@ export default function AdminDashboard() {
     const navigate = useNavigate()
     const [health, setHealth] = useState<SystemHealth | null>(null)
     const [proposals, setProposals] = useState<EvolutionProposal[]>([])
-    const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!authLoading && !user) {
-            navigate('/admin/login')
-        }
+        if (!authLoading && !user) navigate('/admin/login')
     }, [user, authLoading, navigate])
 
     useEffect(() => {
         if (user) {
             fetchData()
+            const interval = setInterval(fetchData, 10000) // Poll health every 10s
+            return () => clearInterval(interval)
         }
     }, [user])
 
@@ -59,15 +59,11 @@ export default function AdminDashboard() {
             setProposals((proposalsData as { proposals: EvolutionProposal[] }).proposals || [])
         } catch (error) {
             console.error('Failed to fetch admin data:', error)
-        } finally {
-            setLoading(false)
         }
     }
 
     async function handleEmergencyHalt() {
-        if (!confirm('⚠️ EMERGENCY HALT: This will stop ALL trading immediately. Continue?')) {
-            return
-        }
+        if (!confirm('⚠️ EMERGENCY HALT: Stop ALL trading immediately?')) return
         setActionLoading('halt')
         try {
             await adminApi.emergencyHalt()
@@ -77,20 +73,22 @@ export default function AdminDashboard() {
         }
     }
 
-    async function handleApprove(id: string) {
-        setActionLoading(id)
+    async function handleResumeTrading() {
+        if (!confirm('🟢 RESUME TRADING: Are you sure you want to resume?')) return
+        setActionLoading('resume')
         try {
-            await adminApi.approveEvolution(id)
+            await adminApi.resumeTrading()
             await fetchData()
         } finally {
             setActionLoading(null)
         }
     }
 
-    async function handleReject(id: string) {
+    async function handleEvolutionAction(id: string, action: 'approve' | 'reject') {
         setActionLoading(id)
         try {
-            await adminApi.rejectEvolution(id)
+            if (action === 'approve') await adminApi.approveEvolution(id)
+            else await adminApi.rejectEvolution(id)
             await fetchData()
         } finally {
             setActionLoading(null)
@@ -99,193 +97,142 @@ export default function AdminDashboard() {
 
     if (authLoading || (!user && !authLoading)) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="min-h-screen bg-black flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-            {/* Header */}
-            <header className="border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                            <Brain className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-                            <p className="text-xs text-slate-400">{user?.email}</p>
-                        </div>
+        <div className="min-h-screen bg-black text-slate-200 font-sans selection:bg-emerald-500/30">
+            {/* Top Bar */}
+            <header className="h-14 border-b border-slate-800 bg-slate-950 flex items-center justify-between px-4 sticky top-0 z-50">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-emerald-900/30 border border-emerald-500/30 flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <button
-                        onClick={signOut}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
-                    </button>
+                    <h1 className="text-lg font-bold tracking-tight text-white">AGENT<span className="text-emerald-500">FUND</span> <span className="text-xs font-mono text-slate-500 ml-2">v1.2.0 • {health?.environment.toUpperCase()}</span></h1>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {/* Status Indicators */}
+                    {health && (
+                        <div className="hidden md:flex items-center gap-4 text-xs font-mono border-r border-slate-800 pr-4">
+                            <div className="flex items-center gap-1.5">
+                                <Activity className={`w-3 h-3 ${health.status === 'healthy' ? 'text-emerald-500' : 'text-red-500'}`} />
+                                <span className={health.status === 'healthy' ? 'text-emerald-400' : 'text-red-400'}>SYSTEM {health.status.toUpperCase()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                                <Database className="w-3 h-3" />
+                                <span>DB: {health.database.toUpperCase()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                                <Server className="w-3 h-3" />
+                                <span>REDIS: {health.redis.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                        {health?.trading_halted ? (
+                            <button
+                                onClick={handleResumeTrading}
+                                disabled={actionLoading === 'resume'}
+                                className="h-8 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse"
+                            >
+                                {actionLoading === 'resume' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                                RESUME TRADING
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleEmergencyHalt}
+                                disabled={actionLoading === 'halt'}
+                                className="h-8 px-3 rounded bg-red-900/20 border border-red-500/50 hover:bg-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-all"
+                            >
+                                {actionLoading === 'halt' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Power className="w-3 h-3" />}
+                                HALT SYSTEM
+                            </button>
+                        )}
+
+                        <button onClick={signOut} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors">
+                            <LogOut className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* System Health */}
-                <section className="mb-8">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-emerald-400" />
-                        System Health
-                    </h2>
+            {/* Main Layout - Bento Grid */}
+            <main className="p-4 max-w-[1920px] mx-auto grid grid-cols-12 gap-4 h-[calc(100vh-3.5rem)]">
 
-                    {loading ? (
-                        <div className="bg-slate-900/50 rounded-xl border border-slate-800/50 p-6">
-                            <div className="animate-pulse flex gap-4">
-                                <div className="h-20 w-32 bg-slate-800 rounded-lg" />
-                                <div className="h-20 w-32 bg-slate-800 rounded-lg" />
-                                <div className="h-20 w-32 bg-slate-800 rounded-lg" />
-                            </div>
+                {/* Left Column: Risk Config (3 cols) */}
+                <div className="col-span-12 xl:col-span-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
+                    <div className="bg-slate-900/30 border border-slate-800 rounded-lg p-1">
+                        <RiskConfigPanel />
+                    </div>
+
+                    {/* Evolution Proposals (Mini) */}
+                    <div className="bg-slate-900/30 border border-slate-800 rounded-lg flex-1 flex flex-col min-h-[300px]">
+                        <div className="p-3 border-b border-slate-800 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-purple-400" />
+                            <span className="text-sm font-semibold text-slate-200">Evolution Proposals</span>
+                            <span className="ml-auto text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">{proposals.length}</span>
                         </div>
-                    ) : health ? (
-                        <div className="bg-slate-900/50 rounded-xl border border-slate-800/50 p-6">
-                            <div className="flex flex-wrap gap-6 mb-6">
-                                <StatusBadge
-                                    label="Overall"
-                                    status={health.status}
-                                    icon={<Activity className="w-4 h-4" />}
-                                />
-                                <StatusBadge
-                                    label="Database"
-                                    status={health.database}
-                                    icon={<CheckCircle2 className="w-4 h-4" />}
-                                />
-                                <StatusBadge
-                                    label="Redis"
-                                    status={health.redis}
-                                    icon={<CheckCircle2 className="w-4 h-4" />}
-                                />
-                                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50">
-                                    <span className="text-sm text-slate-400">Mode:</span>
-                                    <span className="text-sm font-medium text-white uppercase">
-                                        {health.trading_mode}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {health.trading_halted ? (
-                                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-red-400" />
-                                    <span className="text-red-400 font-medium">Trading is HALTED</span>
-                                </div>
+                        <div className="p-3 space-y-3 overflow-y-auto flex-1">
+                            {proposals.length === 0 ? (
+                                <div className="text-center py-8 text-slate-600 text-xs italic">No active proposals</div>
                             ) : (
-                                <button
-                                    onClick={handleEmergencyHalt}
-                                    disabled={actionLoading === 'halt'}
-                                    className="px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-medium hover:bg-red-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    {actionLoading === 'halt' ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <Power className="w-5 h-5" />
-                                    )}
-                                    Emergency Halt
-                                </button>
+                                proposals.map(p => (
+                                    <div key={p.id} className="bg-black border border-slate-800 p-3 rounded hover:border-slate-600 transition-colors">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-mono text-purple-400">{p.strategy_id}</span>
+                                            <span className="text-[10px] text-slate-500">{new Date(p.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-300 mb-2 leading-relaxed">{p.description}</p>
+                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/50">
+                                            <span className="text-[10px] text-emerald-500">+{p.expected_improvement}% yield</span>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => handleEvolutionAction(p.id, 'approve')} className="p-1 hover:bg-emerald-900/30 rounded text-emerald-500"><CheckCircle2 className="w-3 h-3" /></button>
+                                                <button onClick={() => handleEvolutionAction(p.id, 'reject')} className="p-1 hover:bg-red-900/30 rounded text-red-500"><XCircle className="w-3 h-3" /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
-                    ) : null}
-                </section>
-
-                {/* Risk & Positions Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <section>
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <Settings className="w-5 h-5 text-emerald-400" />
-                            Risk Configuration
-                        </h2>
-                        <RiskConfigPanel />
-                    </section>
-
-                    <section>
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <List className="w-5 h-5 text-emerald-400" />
-                            Active Positions
-                        </h2>
-                        <PositionsTable />
-                    </section>
+                    </div>
                 </div>
 
-                {/* Evolution Proposals */}
-                <section>
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-emerald-400" />
-                        Evolution Proposals ({proposals.length})
-                    </h2>
+                {/* Center Column: Live Feed & Chart placeholder (6 cols) */}
+                <div className="col-span-12 xl:col-span-6 flex flex-col gap-4 h-full">
+                    {/* Placeholder for future Chart */}
+                    {/* <div className="h-1/3 bg-slate-900/30 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-sm font-mono border-dashed">
+                        MARKET PERFORMANCE CHART
+                    </div> */}
 
-                    <div className="space-y-4">
-                        {proposals.map((proposal) => (
-                            <div
-                                key={proposal.id}
-                                className="bg-slate-900/50 rounded-xl border border-slate-800/50 p-6"
-                            >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-sm font-medium text-emerald-400">
-                                                {proposal.strategy_id}
-                                            </span>
-                                            <span className="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-400">
-                                                {proposal.proposal_type}
-                                            </span>
-                                        </div>
-                                        <p className="text-white mb-2">{proposal.description}</p>
-                                        <p className="text-sm text-slate-400">
-                                            Expected improvement: {(proposal.expected_improvement * 100).toFixed(1)}%
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleApprove(proposal.id)}
-                                            disabled={actionLoading === proposal.id}
-                                            className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
-                                            title="Approve"
-                                        >
-                                            {actionLoading === proposal.id ? (
-                                                <Loader2 className="w-5 h-5 animate-spin" />
-                                            ) : (
-                                                <CheckCircle2 className="w-5 h-5" />
-                                            )}
-                                        </button>
-                                        <button
-                                            onClick={() => handleReject(proposal.id)}
-                                            disabled={actionLoading === proposal.id}
-                                            className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                                            title="Reject"
-                                        >
-                                            <XCircle className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-
-                        {proposals.length === 0 && !loading && (
-                            <div className="bg-slate-900/50 rounded-xl border border-slate-800/50 p-8 text-center text-slate-500">
-                                No pending evolution proposals
-                            </div>
-                        )}
+                    {/* Live Agent Terminal */}
+                    <div className="flex-1 min-h-0">
+                        <LiveAgentFeed />
                     </div>
-                </section>
+                </div>
+
+                {/* Right Column: Positions (3 cols) */}
+                <div className="col-span-12 xl:col-span-3 flex flex-col h-full bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
+                    <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                        <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-blue-400" />
+                            <span className="text-sm font-semibold text-slate-200">Active Positions</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto relative">
+                        {/* We rely on PositionsTable internal scrolling or wrap it effectively */}
+                        <div className="absolute inset-0">
+                            <PositionsTable />
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </div>
     )
 }
 
-function StatusBadge({ label, status, icon }: { label: string; status: string; icon: React.ReactNode }) {
-    const isHealthy = status === 'healthy' || status === 'connected'
-    return (
-        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isHealthy ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-            }`}>
-            {icon}
-            <span className="text-sm font-medium">{label}: {status}</span>
-        </div>
-    )
-}

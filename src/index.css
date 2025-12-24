@@ -1,29 +1,73 @@
 @import "tailwindcss";
 
-/* Custom CSS Variables for AgentFund Theme */
+/* AgentFund Financial Terminal Theme */
 :root {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --primary: 142.1 70.6% 45.3%;
-  --primary-foreground: 144.9 80.4% 10%;
-  --secondary: 217.2 32.6% 17.5%;
+  /* Ultra Dark Base */
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+
+  /* High Contrast Cards */
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 213 31% 91%;
+
+  /* Financial Indicators */
+  --primary: 150 100% 35%;
+  /* Emerald Green */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 27% 16.9%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
+
+  /* Muted / Borders */
+  --muted: 215 27% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 215 27% 17%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 50.6%;
+
+  /* Alerts */
+  --destructive: 0 84% 60%;
+  /* Bright Red */
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 142.1 70.6% 45.3%;
-  --radius: 0.5rem;
+
+  /* UI Chrome */
+  --border: 215 27% 17%;
+  --input: 215 27% 17%;
+  --ring: 150 100% 35%;
+  --radius: 0.25rem;
+  /* Sharper corners for pro feel */
 }
 
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Onest", "Inter", system-ui, sans-serif;
+  /* Modern clean sans */
   margin: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Financial Data Font */
+.font-mono {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* Custom Scrollbar for Terminal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
 }
