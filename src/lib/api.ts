@@ -68,6 +68,9 @@ export const adminApi = {
     updateRiskConfig: (config: RiskConfig) => apiPost('/admin/risk/config', config, { authenticated: true }),
     closePosition: (symbol: string) => apiPost(`/admin/positions/${symbol}/close`, {}, { authenticated: true }),
     getOpenPositions: () => apiGet<OpenPositionsResponse>('/admin/positions', { authenticated: true }),
+    getAgentEvents: (since = 0, limit = 50) => apiGet<AgentEventsResponse>(`/admin/events?since=${since}&limit=${limit}`, { authenticated: true }),
+    getPortfolio: () => apiGet<PortfolioStats>('/admin/portfolio', { authenticated: true }),
+    getPnlHistory: (days = 30) => apiGet<PnlHistoryResponse>(`/admin/pnl-history?days=${days}`, { authenticated: true }),
 }
 
 export interface OpenPositionsResponse {
@@ -133,4 +136,43 @@ export interface TradeRecord {
     pnl_percent: number
     outcome: string
     timestamp: string
+}
+
+export interface AgentEventsResponse {
+    events: AgentEvent[]
+    count: number
+    server_time: number
+}
+
+export interface AgentEvent {
+    id: string
+    timestamp: string
+    timestamp_unix: number
+    source: string
+    type: string
+    summary: string
+    details: Record<string, unknown>
+}
+
+export interface PortfolioStats {
+    total_balance: number
+    starting_capital: number
+    today_pnl_pct: number
+    today_trades: number
+    total_return_pct: number
+    total_trades: number
+    open_positions_count: number
+    currency: string
+}
+
+export interface PnlHistoryResponse {
+    history: PnlHistoryEntry[]
+    days: number
+}
+
+export interface PnlHistoryEntry {
+    date: string
+    pnl_pct: number
+    trades_count: number
+    cumulative_pnl_pct: number
 }
