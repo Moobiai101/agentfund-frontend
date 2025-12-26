@@ -71,6 +71,12 @@ export const adminApi = {
     getAgentEvents: (since = 0, limit = 50) => apiGet<AgentEventsResponse>(`/admin/events?since=${since}&limit=${limit}`, { authenticated: true }),
     getPortfolio: () => apiGet<PortfolioStats>('/admin/portfolio', { authenticated: true }),
     getPnlHistory: (days = 30) => apiGet<PnlHistoryResponse>(`/admin/pnl-history?days=${days}`, { authenticated: true }),
+
+    // Backtest API
+    startBacktest: (config: BacktestConfig) => apiPost<BacktestResponse>('/admin/backtest/start', config, { authenticated: true }),
+    getBacktestRuns: (limit = 10) => apiGet<BacktestRunsResponse>(`/admin/backtest/runs?limit=${limit}`, { authenticated: true }),
+    getBacktestDetails: (runId: string) => apiGet<BacktestRunDetails>(`/admin/backtest/${runId}`, { authenticated: true }),
+    getAvailableStrategies: () => apiGet<{ strategies: AvailableStrategy[] }>('/admin/strategies/available', { authenticated: true }),
 }
 
 export interface OpenPositionsResponse {
@@ -176,3 +182,56 @@ export interface PnlHistoryEntry {
     trades_count: number
     cumulative_pnl_pct: number
 }
+
+// Backtest Types
+export interface BacktestConfig {
+    start_date: string
+    end_date: string
+    strategies: string[]
+    learning_enabled: boolean
+}
+
+export interface BacktestResponse {
+    status: string
+    run_id: string
+    config: BacktestConfig
+}
+
+export interface BacktestRunsResponse {
+    runs: BacktestRunSummary[]
+}
+
+export interface BacktestRunSummary {
+    run_id: string
+    start_date: string
+    end_date: string
+    strategies: string[]
+    learning_enabled: boolean
+    requested_by: string
+    requested_at: string
+    status: 'pending' | 'running' | 'completed' | 'failed'
+    progress: number
+    completed_at?: string
+    error?: string
+}
+
+export interface BacktestRunDetails extends BacktestRunSummary {
+    results?: BacktestResults
+    logs?: string[]
+}
+
+export interface BacktestResults {
+    total_trades: number
+    win_rate: number
+    total_pnl: number
+    max_drawdown_pct: number
+    equity_curve: { time: string; equity: number }[]
+    completed_trades: any[]
+}
+
+export interface AvailableStrategy {
+    id: string
+    source: string
+    description: string
+}
+
