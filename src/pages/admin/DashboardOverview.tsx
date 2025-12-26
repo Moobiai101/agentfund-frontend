@@ -31,7 +31,8 @@ export default function DashboardOverview() {
     const [proposals, setProposals] = useState<EvolutionProposal[]>([])
     const [portfolio, setPortfolio] = useState<PortfolioStats | null>(null)
     const [health, setHealth] = useState<SystemHealth | null>(null)
-    const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+
 
     useEffect(() => {
         fetchData()
@@ -55,13 +56,12 @@ export default function DashboardOverview() {
     }
 
     async function handleEvolutionAction(id: string, action: 'approve' | 'reject') {
-        setActionLoading(id)
         try {
             if (action === 'approve') await adminApi.approveEvolution(id)
             else await adminApi.rejectEvolution(id)
             await fetchData()
-        } finally {
-            setActionLoading(null)
+        } catch (error) {
+            console.error('Evolution action failed:', error)
         }
     }
 

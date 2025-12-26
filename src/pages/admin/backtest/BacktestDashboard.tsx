@@ -64,7 +64,7 @@ export default function BacktestDashboard() {
         e.preventDefault()
         setStarting(true)
         try {
-            const result = await adminApi.startBacktest({
+            await adminApi.startBacktest({
                 start_date: startDate,
                 end_date: endDate,
                 strategies: selectedStrategies,
@@ -248,8 +248,8 @@ export default function BacktestDashboard() {
                                             <div className="text-right">
                                                 <div className="text-xs text-slate-500 uppercase tracking-wider mb-0.5">RUN STATUS</div>
                                                 <div className={`text-sm font-bold uppercase ${run.status === 'completed' ? 'text-emerald-400' :
-                                                        run.status === 'failed' ? 'text-red-400' :
-                                                            'text-blue-400'
+                                                    run.status === 'failed' ? 'text-red-400' :
+                                                        'text-blue-400'
                                                     }`}>{run.status}</div>
                                             </div>
 

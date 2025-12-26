@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { adminApi } from '../../lib/api'
 import {
     Brain, LogOut, Activity,
-    Database, Server, Loader2, Power,
+    Loader2, Power,
     Play, LayoutDashboard, History
 } from 'lucide-react'
 
@@ -20,7 +20,6 @@ interface SystemHealth {
 export default function AdminLayout() {
     const { user, loading: authLoading, signOut } = useAuth()
     const navigate = useNavigate()
-    const location = useLocation()
     const [health, setHealth] = useState<SystemHealth | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 

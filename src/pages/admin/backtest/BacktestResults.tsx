@@ -7,7 +7,7 @@ import {
     Loader2, Download
 } from 'lucide-react'
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid,
+    XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts'
 
@@ -82,8 +82,8 @@ export default function BacktestResults() {
                         <div className="flex items-center gap-3 mb-1">
                             <h1 className="text-2xl font-bold text-white font-mono">{details.run_id}</h1>
                             <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${details.status === 'completed' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900/50' :
-                                    details.status === 'failed' ? 'bg-red-900/30 text-red-400 border border-red-900/50' :
-                                        'bg-blue-900/30 text-blue-400 border border-blue-900/50 animate-pulse'
+                                details.status === 'failed' ? 'bg-red-900/30 text-red-400 border border-red-900/50' :
+                                    'bg-blue-900/30 text-blue-400 border border-blue-900/50 animate-pulse'
                                 }`}>
                                 {details.status}
                             </span>
