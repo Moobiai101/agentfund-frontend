@@ -257,6 +257,16 @@ export default function BacktestDashboard() {
                                         </div>
                                     </div>
 
+                                    {/* Error message for failed runs */}
+                                    {run.status === 'failed' && run.error && (
+                                        <div className="mt-3 p-3 bg-red-900/20 border border-red-900/50 rounded text-sm">
+                                            <div className="flex items-start gap-2 text-red-400">
+                                                <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                                <span className="font-mono text-xs break-all">{run.error}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Progress bar for running */}
                                     {run.status === 'running' && (
                                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800">
